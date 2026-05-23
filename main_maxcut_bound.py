@@ -9,7 +9,7 @@ from file_lib import load_gset_problem
 t0 = time.time()
 test_date = datetime.now().date()
 test_time = datetime.now().time()
-
+assert gsetnum in [11, 12, 13, 32, 33, 34, 48, 49, 50, 57, 62, 65, 66, 67, 72, 77, 81]
 nums = np.array([gsetnum])
 formatted_datetime = datetime.now().strftime("%Y %B %d, %H:%M:%S")
 print(formatted_datetime)
