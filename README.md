@@ -13,11 +13,11 @@ This project provides algorithms and tools for computing upper bounds and findin
 - **`main_maxcut_bound.py`** - Calculates upper bounds for toroidal Max-Cut problems
   - Loads GSet problems from benchmark datasets
   - Computes topological properties (cycle structure, average distance)
-  - Generates upper bound estimates
+  - Generates upper bound values
 
 - **`main_maxcut_solve.py`** - Finds approximated solutions to toroidal Max-Cut problems
-  - Implements topological and direct painting solving strategies
-  - Generates and outputs solution masks and groupings in hex format
+  - Implements topological strategies
+  - Generates and outputs solution edge masks and nodes groupings in hex format
   - Includes problem analysis and visualization capabilities
   - Saves results to the `sols/` directory
 
@@ -28,7 +28,7 @@ This project provides algorithms and tools for computing upper bounds and findin
 - **`toroid_maxcut_lib.py`** - Main library for toroidal Max-Cut algorithms
   - Upper bound computation
   - Topological solving methods
-  - Direct painting techniques
+  - Coloring techniques
 
 - **`toroid_faces_lib.py`** - Face-based algorithms for toroidal graphs
 - **`toroid_cycles_lib.py`** - Cycle-based algorithms for toroidal graphs
@@ -91,7 +91,7 @@ python main_maxcut_solve.py
 The script will:
 1. Load the GSet problem specified in `params_config.py`
 2. Analyze graph properties (number of nodes, edges, cycle structure)
-3. Apply topological and painting-based algorithms
+3. Apply topological algorithms
 4. Output solutions to the `sols/` directory in hexadecimal format
 5. Log results to `log.txt`
 
@@ -139,7 +139,7 @@ The implementation handles graphs embedded on a toroid, which allows for:
 ### Solving Strategies
 
 1. **Topological Method** - Exploits the toroidal structure to partition vertices
-2. **Direct Painting** - Uses graph coloring and heuristic vertex assignment
+2. **Coloring** - Uses graph coloring and heuristic vertex assignment
 
 ### Upper Bound Computation
 
