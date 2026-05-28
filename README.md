@@ -4,7 +4,7 @@ Upper bounds and approximated solutions for GSet toroidal Max-Cut problems.
 
 ## Overview
 
-This project provides algorithms and tools for computing upper bounds and finding approximated solutions to the Maximum Cut (Max-Cut) problem on graphs embedded in toroidal and planar topologies. The implementation focuses on GSet benchmark toroidal problems: ##11,12,13,32,33,34,48,49,50,57,62,65,66,67,72,77,81, offering both theoretical bounds and practical heuristic solutions.
+This project provides algorithms and tools for computing upper bounds and finding approximated solutions to the Maximum Cut (Max-Cut) problem on graphs embedded in toroidal and planar topologies. The implementation focuses on GSet benchmark toroidal problems: ##11,12,13,32,33,34,48,49,50,57,62,65,66,67,72,77,81, offering both theoretical bounds and practical heuristic solutions. GSet benchmark dataset can be found at: http://web.stanford.edu/~yyye/yyye/Gset/.
 
 ## Project Structure
 
