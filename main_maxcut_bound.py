@@ -3,23 +3,19 @@ import numpy as np
 import time
 from datetime import datetime
 from toroid_maxcut_lib import get_toroid_max_cut_bound
-from params_config import gsetnum
+from params_manager import gsetnum
 from file_lib import load_gset_problem
 
 t0 = time.time()
 test_date = datetime.now().date()
 test_time = datetime.now().time()
-assert gsetnum in [11, 12, 13, 32, 33, 34, 48, 49, 50, 57, 62, 65, 66, 67, 72, 77, 81]
-nums = np.array([gsetnum])
 formatted_datetime = datetime.now().strftime("%Y %B %d, %H:%M:%S")
 print(formatted_datetime)
 print('=====================')
-# with open("log.txt", "a") as flog:
-#     flog.write(f"{formatted_datetime}\n")
 
 
 if __name__ == '__main__':
-    for GNum in nums:
+    for GNum in gsetnum:
         H, edges = load_gset_problem(GNum)
         Habs = np.abs(H).astype(bool)
         Hsign = (H<0).astype(bool)
@@ -34,7 +30,10 @@ if __name__ == '__main__':
         D = int(np.round(np.mean(cycle_size)))
         print('GSet #'+str(GNum)+', #Nodes='+str(mat_sz)+', D='+str(D))
         total_t0 = time.time()
-        get_toroid_max_cut_bound(H, Habs, Hsign, D, GNum)
+        MCLimit, t101 = get_toroid_max_cut_bound(H, Habs, Hsign, D, GNum)
+        formatted_datetime = datetime.now().strftime("%Y %B %d, %H:%M:%S")
+        with open("log.txt", "a") as flog:
+            flog.write(f"{formatted_datetime} GSet={GNum} MaxCutBound={MCLimit} time={t101}sec\n")
 
 
 

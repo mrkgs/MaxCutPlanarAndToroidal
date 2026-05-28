@@ -3,17 +3,14 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-import os
 from datetime import datetime
-from toroid_maxcut_lib import get_toroid_max_cut_topological, get_toroid_max_cut_direct_painting
+from toroid_maxcut_lib import get_toroid_max_cut_topological
 from file_lib import write_bin_to_hex_file, load_gset_problem
-from params_config import gsetnum
+from params_manager import gsetnum, alg_num
 
 t0 = time.time()
 test_date = datetime.now().date()
 test_time = datetime.now().time()
-assert gsetnum in [11, 12, 13, 32, 33, 34, 48, 49, 50, 57, 62, 65, 66, 67, 72, 77, 81]
-nums = np.array([gsetnum])
 plot_en = 0
 analyse_problems_en = 1
 solve_enable = 1
@@ -23,7 +20,8 @@ formatted_datetime = datetime.now().strftime("%Y %B %d, %H:%M:%S")
 #     flog.write(f"{formatted_datetime}\n")
 
 if __name__ == '__main__':
-    for GNum in nums:
+    for GNum in gsetnum:
+
         H, edges = load_gset_problem(GNum)
         Habs = np.abs(H).astype(bool)
         Hsign = (H<0).astype(bool)
@@ -35,7 +33,7 @@ if __name__ == '__main__':
             plt.title('GSet #'+str(GNum)+', |V|='+str(mat_sz))
             plt.colorbar()
             plt.show()
-            print(nums+1)
+            print(gsetnum)
             time.sleep(1)
         # planar_matrix, non_planar_matrix =  plot_graph_from_adjacency_matrix(H)
 
@@ -58,30 +56,28 @@ if __name__ == '__main__':
                 random.shuffle(cycles_vec)
                 force_rerun_arg = 1
                 solve_en = 1
-                painting_en = 1
-                alg_num = 2
+                # alg_num = 2
                 if solve_en:
-                    inner_cycles_starts = get_toroid_max_cut_topological(H, Habs, Hsign, D, 0, GNum, cycles_vec, force_rerun_arg, alg_num)
-                if painting_en:
-                    if not os.path.exists('./sols'):
-                        os.makedirs('./sols')
-                    max_cut_val_best, max_cut_log, max_cut_masks_best, max_cut_grps_best = get_toroid_max_cut_direct_painting(H, Habs, Hsign, D, 0, GNum, inner_cycles_starts, alg_num)
-                    max_cut_masks_best = np.array(max_cut_masks_best)
-                    print('masks array shape:', max_cut_masks_best.shape)
-                    max_cut_grps_best = np.array(max_cut_grps_best)
-                    print('grps array shape:', max_cut_grps_best.shape)
-                    if len(max_cut_masks_best.shape) > 1:
+                    mc_val_best, num_ov, num_act_short_paths, mc_groups_best, mc_masks_best = get_toroid_max_cut_topological(H, Habs, Hsign, D, 0, GNum, cycles_vec, force_rerun_arg, alg_num)
+                    print('max cut:', mc_val_best)
+                    mc_masks_best = np.array(mc_masks_best)
+                    print('masks array shape:', mc_masks_best.shape)
+                    mc_groups_best = np.array(mc_groups_best)
+                    print('groups array shape:', mc_groups_best.shape)
+                    if len(mc_masks_best.shape) > 1:
                         fname = 'sols/gset_{:d}_maxcut_masks.txt'.format(GNum)
-                        write_bin_to_hex_file(max_cut_masks_best, fname, "w")
-                    if len(max_cut_grps_best)>0:
+                        write_bin_to_hex_file(mc_masks_best, fname, "w")
+                    if len(mc_groups_best) > 0:
                         fname = 'sols/gset_{:d}_maxcut_groups_hex.txt'.format(GNum)
-                        write_bin_to_hex_file(max_cut_grps_best, fname, "w")
+                        write_bin_to_hex_file(mc_groups_best, fname, "w")
 
-                    delta_t = 'time: '+str(int(time.time()-t0))+' sec.'
-                    NEdges = int(np.sum(abs(np.sign(H)))/2)
-                    res_str = 'GSet #'+str(GNum)+', #Nodes='+str(mat_sz)+', #Edges='+str(NEdges)+', D='+str(D)+', MC='+str(max_cut_val_best)+','+delta_t
-                    print(res_str)
-                    with open("log.txt", "a") as flog:
-                        flog.write(res_str+'\n')
+                delta_t = 'time='+str(int(time.time()-t0))+' sec.'
+                NEdges = int(np.sum(abs(np.sign(H)))/2)
+                # res_str = 'GSet #'+str(GNum)+', #Nodes='+str(mat_sz)+', #Edges='+str(NEdges)+', D='+str(D)+'+'+', NActShortPaths='+str(num_act_short_paths)+', MC='+str(int(mc_val_best))+', '+delta_t
+                res_str = f'GSetNum={GNum}, #Nodes={mat_sz}, #Edges={NEdges}, D={D}, #OddVertices={num_ov}, #ActShortPaths={num_act_short_paths}, MC={int(mc_val_best)}, {delta_t}'
+                print(res_str)
+                formatted_datetime = datetime.now().strftime("%Y %B %d, %H:%M:%S")
+                with open("log.txt", "a") as flog:
+                    flog.write(f"{formatted_datetime}: "+res_str+'\n')
                 print('Total Time =',int(time.time()-total_t0),'sec.')
 

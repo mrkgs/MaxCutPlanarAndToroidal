@@ -113,16 +113,16 @@ def get_full_ov_min_cover(P0, odd_vertices, min_paths, H_edges, Wabs, Wsign, gse
         max_match_full = []
     assert H0_maxcut.sum() % 2 == 0
     MCLimit = int(H0_maxcut.sum() // 2)
-    print(f" MC Limit= {MCLimit}. max(|min-path|): max match={max_match},  sum match={sum_match} , max input={max_in}.")
-    # np.savetxt('bounds/GSet{:d}_MaxCutLimit.txt'.format(gset_num), np.atleast_1d(MCLimit), fmt='%d')
+    print(f" MCBound={MCLimit}. max(|min-path|): MaxMatch={max_match},  SumMatch={sum_match} , MaxInput={max_in}.")
     return max_match_full, MCLimit
 
 
 def get_weighted_signed_max_cut_incremental(gsetnum, P0, cycle_start, in_cycle, Wabs, Wsign, min_paths, H_edges, odd_vertices, edges_array, max_match_full, alg_num):
-    if alg_num == 1:
-        alg_str = ''
-    else:
-        alg_str = '_alg'+str(alg_num)
+    # if alg_num == 1:
+    #     alg_str = ''
+    # else:
+    #     alg_str = '_alg'+str(alg_num)
+    alg_str = '_alg'+str(alg_num)
     count_cross_num = True
     n_odd_dual_vertices = len(odd_vertices)
     P1 = P0.copy()
@@ -156,14 +156,14 @@ def get_weighted_signed_max_cut_incremental(gsetnum, P0, cycle_start, in_cycle, 
     maxcut_mask = (Wabs*(Wsign==0)).astype(bool)
     maxcut_mask_change_flag = np.zeros_like(maxcut_mask, dtype=bool)
     # cross_num = 0
-    if cross_num % 2 == 0 and alg_num==2:
+    if cross_num % 2 == 0 and alg_num==1:
         max_match = max_match_full
         if n_odd_dual_vertices > 0:
             max_min_path = int(P1.max())
         else:
             max_min_path = -1
     else:
-        if alg_num==2:
+        if alg_num==1:
             P_cut_all = P0.copy()
             ecnt = -1
             crossed_ecnt = -1
@@ -202,12 +202,12 @@ def get_weighted_signed_max_cut_incremental(gsetnum, P0, cycle_start, in_cycle, 
 
             check_cross_num = get_cross_num(in_cycle, max_match, min_paths, odd_vertices, P1)
             if check_cross_num % 2 == 0:
-                found_eve_cycle = True
+                found_even_cycle = True
             else:
-                found_eve_cycle = False
-            if not found_eve_cycle:
+                found_even_cycle = False
+            if not found_even_cycle:
                 print('Even cycle not found, using backup procedure', check_cross_num)
-        if not (alg_num==2 and found_eve_cycle):
+        if not (alg_num==1 and found_even_cycle):
             for ov1_cnt in range(n_odd_dual_vertices):
                 for ov2_cnt in range(ov1_cnt+1,n_odd_dual_vertices):
                     if P1[ov1_cnt, ov2_cnt] != 0:
@@ -226,10 +226,15 @@ def get_weighted_signed_max_cut_incremental(gsetnum, P0, cycle_start, in_cycle, 
                 Gc = nx.from_numpy_array(H_odd, create_using=nx.Graph)
                 max_match = nx.algorithms.max_weight_matching(Gc, maxcardinality=True, weight='weight')
 
-    if len(max_match)*2 == n_odd_dual_vertices:
-        valid_cycle = True
+    if n_odd_dual_vertices>0:
+        if len(max_match)*2 == n_odd_dual_vertices:
+            valid_cycle = True
+        else:
+            print(f"cycle start={cycle_start} len(max_match)x2={len(max_match)*2} #ovpairs={n_odd_dual_vertices}")
     else:
-        print(f"cycle start={cycle_start} len(max_match)x2={len(max_match)*2} #ovpairs={n_odd_dual_vertices}")
+        valid_cycle = True
+        max_match = []
+        max_min_path = -1
     if valid_cycle:
         min_cover = []
         selected_lens = np.zeros((len(max_match)))
@@ -245,7 +250,7 @@ def get_weighted_signed_max_cut_incremental(gsetnum, P0, cycle_start, in_cycle, 
                 min_cover.append(p0[idx:idx + 2])
 
         min_cover_sorted = [[min(x), max(x)] for x in min_cover]
-        if alg_num==1:
+        if alg_num==2:
             for in_cycle_edge in in_cycle:
                 assert not (in_cycle_edge in min_cover_sorted)
 
@@ -313,39 +318,6 @@ def get_painting_list(A):
                 print('Building Painting Order:',unpainted_nodes_num)
         assert unpainted_nodes_num==0
     return PaintOrderList
-
-
-def paint_nodes_for_maxcut_simple(MC, H):  # w/o recursion
-    N = len(MC)
-    nodes_grps = -np.ones(N, dtype=int)
-    visited = np.zeros(N, dtype=int)
-    nodes_grps[0] = 0
-    unpainted_nodes_num = N - 1
-    for ntry in range(N):
-        painted_more_nodes = False
-        for cnt0 in range(N):
-            if nodes_grps[cnt0]>=0 and not visited[cnt0]:  # Find unused source node
-                visited[cnt0] = 1
-                connected_ind = [int(x) for x in np.argwhere(H[cnt0, :] != 0)]
-                for cnt1 in connected_ind:
-                    if nodes_grps[cnt1]==-1:
-                        if H[cnt0, cnt1] != 0:
-                            if MC[cnt0, cnt1]!= 0:
-                                nodes_grps[cnt1] = 1 - nodes_grps[cnt0]
-                            else:
-                                nodes_grps[cnt1] = nodes_grps[cnt0]
-                            unpainted_nodes_num -= 1
-                            painted_more_nodes = True
-        assert unpainted_nodes_num  >= 0
-        if unpainted_nodes_num > 0 and not painted_more_nodes:
-            print('Adding a painted node')
-            nodes_grps[np.where(nodes_grps==-1)[0][0]] = 0
-            unpainted_nodes_num -= 1
-        if unpainted_nodes_num == 0:
-            break
-
-    assert unpainted_nodes_num == 0, 'Painting is not finished'
-    return nodes_grps
 
 
 def verify_nodes_for_maxcut_with_edges(node_grp, edges_arr, mc_mask):
