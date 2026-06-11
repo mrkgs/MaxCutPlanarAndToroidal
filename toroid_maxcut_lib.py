@@ -137,6 +137,7 @@ def get_toroid_max_cut_topological(H, Habs, Hsign, D, print_en, gsetnum, cycles_
     inner_cycles_e = []
     inner_cycles_dual = []
     start_idxs = []
+    vbc_pos_odd = []
     force_check_cycles = 1
     cycles_starts_to_check=cycles_starts_to_check[cycles_starts_to_check<N]
     for in_cycle_0 in cycles_starts_to_check:
@@ -154,22 +155,24 @@ def get_toroid_max_cut_topological(H, Habs, Hsign, D, print_en, gsetnum, cycles_
             inner_cycle_dual_edges = [[int(x[0]), int(x[1])]  for x in np.loadtxt(cycle_file2)]
             inner_cycle_edges = [[int(x[0]), int(x[1])]  for x in np.loadtxt(cycle_file3)]
 
+        pos_edges_cnt = 0
         if len(inner_cycle_path) == 0:
             valid_inner_cycle = False
         else:
-            pos_edges_cnt = 0
             path_len = len(inner_cycle_path)
             for vcnt in range(path_len):
                 if Hsign[inner_cycle_path[vcnt], inner_cycle_path[(vcnt+1)%path_len]] == 0: # if positive
                     pos_edges_cnt+= 1
-            valid_inner_cycle = (pos_edges_cnt % 2 == 0)  # Take only even cycles
-
+            # valid_inner_cycle = (pos_edges_cnt % 2 == 0)  # Take only even cycles
+            valid_inner_cycle = 1                         # Take all
+        evenness_str = ['EVEN', 'ODD ']
         if valid_inner_cycle:
             inner_cycles.append(inner_cycle_path)
             inner_cycles_dual.append(inner_cycle_dual_edges)
             inner_cycles_e.append(inner_cycle_edges)
-            print(inner_cycle_path)
+            print(evenness_str[pos_edges_cnt % 2], inner_cycle_path)
             start_idxs.append(in_cycle_0)
+            vbc_pos_odd.append(pos_edges_cnt % 2)
         num_inner_cycles = len(inner_cycles)
         if num_inner_cycles == ncycles:
             break
@@ -199,115 +202,121 @@ def get_toroid_max_cut_topological(H, Habs, Hsign, D, print_en, gsetnum, cycles_
     for run_cnt in range(num_of_runs):
         for alg_cnt in [1, 2]:
             if alg_num == alg_cnt or alg_num == 3:
-                print(f'>>>>>>>>>>>>>>>>>>>>>>>>#{gsetnum}: Running Alg{alg_cnt}...>>>')
-                # if alg_cnt == 1:
-                #     alg_str = ''
-                # else:
-                #     alg_str = '_alg' + str(alg_cnt)
-                alg_str = '_alg' + str(alg_cnt)
-                test_func_called = False
-                num_proc_to_run = min(n_proc, cycles_left_to_run)
-                my_processes = []
-                for pid in range(num_proc_to_run-1):
+                for vbc_search_depth in [1, 2]:
+                    print(f'>>>>>>>>>>>>>>>>>>>>>>>>#{gsetnum}: Running Alg{alg_cnt} VBC_Depth={vbc_search_depth}...>>>')
+                    # if alg_cnt == 1:
+                    #     alg_str = ''
+                    # else:
+                    #     alg_str = '_alg' + str(alg_cnt)
+                    alg_str = '_alg' + str(alg_cnt)
+                    test_func_called = False
+                    num_proc_to_run = min(n_proc, cycles_left_to_run)
+                    my_processes = []
+                    for pid in range(num_proc_to_run-1):
+                        cycle_id = n_proc * run_cnt + pid
+                        current_inner_cycle = inner_cycles_dual[cycle_id]
+                        fname_startidx = 'tmp/gset_{:d}_max_cut_mask_hex_start{:d}'.format(gsetnum, start_idxs[cycle_id])+alg_str+'.txt'
+                        if cycle_id in cycles_list and not skip_all_runs and not (os.path.exists(fname_startidx) and not force_rerun):
+                            test_func_called = True
+                            if use_multi_proc:
+                                my_processes.append(Process(target=get_weighted_signed_max_cut_incremental,
+                                                            args=(gsetnum, P, start_idxs[cycle_id], current_inner_cycle, Habs, Hsign,
+                                                                  short_paths_base, H_edges, odd_vertices, edges_array, full_min_cover,
+                                                                  alg_cnt, vbc_search_depth, vbc_pos_odd[cycle_id])))
+                            else:
+                                get_weighted_signed_max_cut_incremental(gsetnum, P, start_idxs[cycle_id], current_inner_cycle, Habs, Hsign,
+                                                                        short_paths_base, H_edges, odd_vertices, edges_array, full_min_cover,
+                                                                        alg_cnt, vbc_search_depth, vbc_pos_odd[cycle_id])
+                    if test_func_called:
+                        if use_multi_proc:
+                            print('running {:d} extra processes'.format(num_proc_to_run-1))
+                        if use_multi_proc:
+                            for proc in my_processes:
+                                proc.start()
+
+                    pid = num_proc_to_run-1  # Run one cycle the main process
                     cycle_id = n_proc * run_cnt + pid
                     current_inner_cycle = inner_cycles_dual[cycle_id]
                     fname_startidx = 'tmp/gset_{:d}_max_cut_mask_hex_start{:d}'.format(gsetnum, start_idxs[cycle_id])+alg_str+'.txt'
+
                     if cycle_id in cycles_list and not skip_all_runs and not (os.path.exists(fname_startidx) and not force_rerun):
                         test_func_called = True
+                        get_weighted_signed_max_cut_incremental(gsetnum, P, start_idxs[cycle_id], current_inner_cycle, Habs, Hsign,
+                                                            short_paths_base, H_edges, odd_vertices, edges_array, full_min_cover,
+                                                                alg_cnt, vbc_search_depth, vbc_pos_odd[cycle_id])
+
+                    if test_func_called:
                         if use_multi_proc:
-                            my_processes.append(Process(target=get_weighted_signed_max_cut_incremental,
-                                                        args=(gsetnum, P, start_idxs[cycle_id], current_inner_cycle, Habs, Hsign,
-                                                              short_paths_base, H_edges, odd_vertices, edges_array, full_min_cover, alg_cnt)))
-                        else:
-                            get_weighted_signed_max_cut_incremental(gsetnum, P, start_idxs[cycle_id], current_inner_cycle, Habs, Hsign,
-                                                                    short_paths_base, H_edges, odd_vertices, edges_array, full_min_cover, alg_cnt)
-                if test_func_called:
-                    if use_multi_proc:
-                        print('running {:d} extra processes'.format(num_proc_to_run-1))
-                    if use_multi_proc:
-                        for proc in my_processes:
-                            proc.start()
+                            for proc in my_processes:
+                                proc.join()
+                            print('multi proc finished')
 
-                pid = num_proc_to_run-1  # Run one cycle the main process
-                cycle_id = n_proc * run_cnt + pid
-                current_inner_cycle = inner_cycles_dual[cycle_id]
-                fname_startidx = 'tmp/gset_{:d}_max_cut_mask_hex_start{:d}'.format(gsetnum, start_idxs[cycle_id])+alg_str+'.txt'
+                    if test_func_called:
+                        MC = []
+                        CN = []
+                        for pid in range(num_proc_to_run):
+                            cycle_id = n_proc * run_cnt + pid
+                            if cycle_id in cycles_list and not skip_all_runs:
+                                fname = 'tmp/gset_{:d}_max_cut_mask_hex_start{:d}'.format(gsetnum, start_idxs[cycle_id])+alg_str+'.txt'
+                                if os.path.exists(fname):
+                                    maxcut_mask_array = read_from_hex_file_to_bin(fname)
+                                    H_maxcut = np.zeros_like(H)
+                                    for ecnt in range(len(edges_array)):
+                                        edge = edges_array[ecnt]
+                                        if maxcut_mask_array[0, ecnt]:
+                                            H_maxcut[edge[0],edge[1]] = H[edge[0],edge[1]]
+                                            H_maxcut[edge[1],edge[0]] = H[edge[1],edge[0]]
 
-                if cycle_id in cycles_list and not skip_all_runs and not (os.path.exists(fname_startidx) and not force_rerun):
-                    test_func_called = True
-                    get_weighted_signed_max_cut_incremental(gsetnum, P, start_idxs[cycle_id], current_inner_cycle, Habs, Hsign,
-                                                        short_paths_base, H_edges, odd_vertices, edges_array, full_min_cover, alg_cnt)
+                                    mc_mask_mat = (H_maxcut != 0)
+                                    mc_grps_vec = paint_nodes_for_maxcut_using_pol(POL, mc_mask_mat)
 
-                if test_func_called:
-                    if use_multi_proc:
-                        for proc in my_processes:
-                            proc.join()
-                        print('multi proc finished')
-
-                if test_func_called:
-                    MC = []
-                    CN = []
-                    for pid in range(num_proc_to_run):
-                        cycle_id = n_proc * run_cnt + pid
-                        if cycle_id in cycles_list and not skip_all_runs:
-                            fname = 'tmp/gset_{:d}_max_cut_mask_hex_start{:d}'.format(gsetnum, start_idxs[cycle_id])+alg_str+'.txt'
-                            if os.path.exists(fname):
-                                maxcut_mask_array = read_from_hex_file_to_bin(fname)
-                                H_maxcut = np.zeros_like(H)
-                                for ecnt in range(len(edges_array)):
-                                    edge = edges_array[ecnt]
-                                    if maxcut_mask_array[0, ecnt]:
-                                        H_maxcut[edge[0],edge[1]] = H[edge[0],edge[1]]
-                                        H_maxcut[edge[1],edge[0]] = H[edge[1],edge[0]]
-
-                                mc_mask_mat = (H_maxcut != 0)
-                                mc_grps_vec = paint_nodes_for_maxcut_using_pol(POL, mc_mask_mat)
-
-                                maxcut_mask_array_updated = np.zeros_like(maxcut_mask_array)
-                                mc_valid = 0
-                                edg_cnt = -1
-                                for edg in edges_array:
-                                    edg_cnt += 1
-                                    if mc_grps_vec[edg[0]] != mc_grps_vec[edg[1]]:
-                                        maxcut_mask_array_updated[0, edg_cnt] = 1
-                                        mc_valid += H[edg[0], edg[1]]
-                                mc_valid = int(mc_valid)
-                                if mc_valid >= mc_val_best:
-                                    reset_answers = False
-                                    if mc_valid > mc_val_best:
-                                        reset_answers = True
-                                        mc_val_best = mc_valid
-                                        mc_mask_best = []
-                                        mc_grps_best = []
-                                    new_sol = True
-                                    for x in mc_grps_best:
-                                        if (all([x[nn] == mc_grps_vec[nn] for nn in range(N)]) or
-                                                all([x[nn] == 1 - mc_grps_vec[nn] for nn in range(N)])):
-                                            new_sol = False
-                                            break
-                                    if new_sol:
-                                        mc_grps_best.append(mc_grps_vec)
-                                        mc_mask_best.append(maxcut_mask_array_updated[0])
-                                        if reset_answers:
-                                            sol_str = 'better'
-                                        else:
-                                            sol_str = 'new'
-                                        print(f'Found {sol_str} solution: {mc_valid}. Total #solutions =',len(mc_grps_best))
-                                real_cut = int(mc_valid)
-                                if real_cut == MCLimit:
-                                    reached_the_bound = True
-                            else:
-                                real_cut = -2
-                            MC.append(real_cut)
-                            cross_num = int(np.loadtxt('info/gset_{:d}_cyclestart{:d}_crossnum.txt'.format(gsetnum, start_idxs[cycle_id])))
-                            CN.append(cross_num)
-                            cycle_cross_numbers[cycle_id] = cross_num
-                    print(f"CutValues={MC},CrossNums={CN},[{run_cnt + 1}/{num_of_runs}])")
+                                    maxcut_mask_array_updated = np.zeros_like(maxcut_mask_array)
+                                    mc_valid = 0
+                                    edg_cnt = -1
+                                    for edg in edges_array:
+                                        edg_cnt += 1
+                                        if mc_grps_vec[edg[0]] != mc_grps_vec[edg[1]]:
+                                            maxcut_mask_array_updated[0, edg_cnt] = 1
+                                            mc_valid += H[edg[0], edg[1]]
+                                    mc_valid = int(mc_valid)
+                                    if mc_valid >= mc_val_best:
+                                        reset_answers = False
+                                        if mc_valid > mc_val_best:
+                                            reset_answers = True
+                                            mc_val_best = mc_valid
+                                            mc_mask_best = []
+                                            mc_grps_best = []
+                                        new_sol = True
+                                        for x in mc_grps_best:
+                                            if (all([x[nn] == mc_grps_vec[nn] for nn in range(N)]) or
+                                                    all([x[nn] == 1 - mc_grps_vec[nn] for nn in range(N)])):
+                                                new_sol = False
+                                                break
+                                        if new_sol:
+                                            mc_grps_best.append(mc_grps_vec)
+                                            mc_mask_best.append(maxcut_mask_array_updated[0])
+                                            if reset_answers:
+                                                sol_str = 'better'
+                                            else:
+                                                sol_str = 'new'
+                                            print(f'Found {sol_str} solution: {mc_valid}. Total #solutions =',len(mc_grps_best))
+                                    real_cut = int(mc_valid)
+                                    if real_cut == MCLimit:
+                                        reached_the_bound = True
+                                else:
+                                    real_cut = -2
+                                MC.append(real_cut)
+                                cross_num = int(np.loadtxt('info/gset_{:d}_cyclestart{:d}_crossnum.txt'.format(gsetnum, start_idxs[cycle_id])))
+                                CN.append(cross_num)
+                                cycle_cross_numbers[cycle_id] = cross_num
+                        print(f"CutValues={MC},CrossNums={CN},[{run_cnt + 1}/{num_of_runs}])")
+                    if reached_the_bound:
+                        break
             if reached_the_bound:
                 break
         cycles_left_to_run -= num_proc_to_run
         if reached_the_bound:
-            print('Reached the MC bound')
+            print('>>>>> Reached the MC bound !!!!!')
             break
 
     print('======')

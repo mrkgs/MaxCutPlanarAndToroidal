@@ -1,5 +1,7 @@
 # Main script that gives an approximated solution for toroidal Max-Cut problem
 import random
+from time import sleep
+
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -21,7 +23,6 @@ formatted_datetime = datetime.now().strftime("%Y %B %d, %H:%M:%S")
 
 if __name__ == '__main__':
     for GNum in gsetnum:
-
         H, edges = load_gset_problem(GNum)
         Habs = np.abs(H).astype(bool)
         Hsign = (H<0).astype(bool)
@@ -71,7 +72,7 @@ if __name__ == '__main__':
                         fname = 'sols/gset_{:d}_maxcut_groups_hex.txt'.format(GNum)
                         write_bin_to_hex_file(mc_groups_best, fname, "w")
 
-                delta_t = 'time='+str(int(time.time()-t0))+' sec.'
+                delta_t = 'time='+str(int(time.time()-total_t0))+' sec.'
                 NEdges = int(np.sum(abs(np.sign(H)))/2)
                 # res_str = 'GSet #'+str(GNum)+', #Nodes='+str(mat_sz)+', #Edges='+str(NEdges)+', D='+str(D)+'+'+', NActShortPaths='+str(num_act_short_paths)+', MC='+str(int(mc_val_best))+', '+delta_t
                 res_str = f'GSetNum={GNum}, #Nodes={mat_sz}, #Edges={NEdges}, D={D}, #OddVertices={num_ov}, #ActShortPaths={num_act_short_paths}, MC={int(mc_val_best)}, {delta_t}'
@@ -80,4 +81,4 @@ if __name__ == '__main__':
                 with open("log.txt", "a") as flog:
                     flog.write(f"{formatted_datetime}: "+res_str+'\n')
                 print('Total Time =',int(time.time()-total_t0),'sec.')
-
+        # sleep(15)
