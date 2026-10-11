@@ -214,3 +214,20 @@ def get_toroid_max_cut_lp(H, edges_array, faces_array, max_iters=50, max_stall=1
             root = int(rng.integers(N))
     info = {'iters': iters, 'optimal': mc_val == mc_bound, 'time': time.time() - t0}
     return mc_val, mc_bound, grps, mask, info
+
+
+def get_toroid_max_cut_bound_lp(H, edges_array, faces_array):
+    # Upper bound of Max-Cut only (the first matching of get_toroid_max_cut_lp), does not depend on MinPathThreshhold.
+    # Also returns True if the matched edges are a cut, i.e. the bound is the Max-Cut value.
+    edges_array = np.asarray(edges_array).astype(int)
+    weights = H[edges_array[:, 0], edges_array[:, 1]]
+    assert np.all(weights == np.round(weights)), 'integer weights are expected'
+    weights = weights.astype(int)
+    adj = [[] for _ in range(len(H))]
+    for ecnt, (v0, v1) in enumerate(edges_array):
+        adj[v0].append((int(v1), ecnt))
+        adj[v1].append((int(v0), ecnt))
+    n_exp, zero_edges, corners, edge_faces = build_expanded_dual(edges_array, faces_array)
+    mask = match_expanded_dual(n_exp, zero_edges, corners, weights)
+    grps, is_cut = paint_nodes_bfs(adj, mask)
+    return int(weights[mask].sum()), is_cut

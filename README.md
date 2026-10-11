@@ -184,7 +184,12 @@ Results are appended to `log.txt`:
 <timestamp>: GSetNum=<N>, #Nodes=<V>, #Edges=<E>, D=<distance>, #OddVertices=<ov>, #ActShortPaths=<asp>, MC=<max_cut_value>, time=<duration> sec.
 ```
 
-When LP is enabled (`alg_num` includes 4) it is run after Algorithms #1/#2, timed separately, and logged as:
+When LP is enabled (`alg_num` includes 4), `main_maxcut_bound.py` also computes the LP bound, which does not depend on `MinPathThreshhold`. It is saved to `bounds/gset<N>_max_cut_bound_lp.txt` and logged as:
+```
+<timestamp> GSet=<N> Alg=LP MaxCutBound=<value> time=<duration>sec
+```
+
+In `main_maxcut_solve.py`, when LP is enabled it is run after Algorithms #1/#2, timed separately, and logged as:
 ```
 <timestamp>: GSetNum=<N>, #Nodes=<V>, #Edges=<E>, D=<distance>, Alg=LP, MCBound=<bound>, #Iters=<iterations>, MC=<max_cut_value>, time=<duration> sec.
 ```
