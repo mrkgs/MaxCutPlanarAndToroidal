@@ -148,6 +148,7 @@ def alg2(n_odd_dual_vertices, P1_in, min_paths, odd_vertices, in_cycle):
                         P1[ov1_cnt, ov2_cnt] = 0
                         break
     P1 = P1 + P1.T
+    max_match, max_min_path = [], -1
     if n_odd_dual_vertices > 0:
         max_min_path = int(P1.max())
         H_odd = (((1 + max_min_path) - P1) * (P1 > 0)).astype(np.uint8)
@@ -276,7 +277,8 @@ def get_weighted_signed_max_cut_incremental(gsetnum, P0, cycle_start, in_cycle, 
         max_min_path = -1
 
     if alg_num==2 or use_alg2_as_backup:
-        max_match, max_min_path = alg2(n_odd_dual_vertices, P1, min_paths, odd_vertices, in_cycle)
+        # as a backup of alg1 it continues from the alg1 matrix, as alg2 itself it starts from the full one
+        max_match, max_min_path = alg2(n_odd_dual_vertices, P1 if use_alg2_as_backup else P0, min_paths, odd_vertices, in_cycle)
 
     if n_odd_dual_vertices>0:
         if len(max_match)*2 == n_odd_dual_vertices:

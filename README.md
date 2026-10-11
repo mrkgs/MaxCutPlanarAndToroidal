@@ -37,6 +37,10 @@ This project provides algorithms and tools for computing upper bounds and findin
 
 - **`toroid_faces_lib.py`** - Face-based algorithms for toroidal graphs
 - **`toroid_cycles_lib.py`** - Cycle-based algorithms for toroidal graphs
+- **`toroid_lp_lib.py`** - Liers-Pardella (LP) algorithm adapted to toroidal graphs (`get_toroid_max_cut_lp`)
+  - Maximum-weight perfect matching on the expanded (K4) dual of the toroidal embedding gives an upper bound
+  - If the matched edges are not a cut, it is repaired and improved by re-solving the matching with the edges of two non-contractible cycles fixed
+  - The cut is proven optimal when it reaches the bound, otherwise it is a heuristic solution
 
 - **`planar_maxcut_lib.py`** - Algorithms optimized for planar graphs
 - **`graph_lib.py`** - General graph utilities and operations
@@ -84,7 +88,9 @@ gsetnum = [11]              # List of GSet problem numbers to solve (comment out
 use_multi_proc = 1          # Enable multiprocessing (0 or 1)
 ncycles = 18                # Number of cycles for algorithm
 MinPathThreshhold = 5       # Threshold for path filtering (or 1E6 for full matrix)
-alg_num = 3                 # Algorithm selection (1-3)
+alg_num = 3                 # Sum of the algorithms to run: 1 - Algorithm#1, 2 - Algorithm#2, 4 - LP (e.g. 5 - Algorithm#1 and LP, 7 - all)
+lp_max_iters = 50           # LP: max number of improvement iterations
+lp_max_stall = 10           # LP: stop after this number of iterations without improvement
 ```
 
 ### Supported Toroidal Instances
@@ -177,6 +183,12 @@ Results are appended to `log.txt`:
 ```
 <timestamp>: GSetNum=<N>, #Nodes=<V>, #Edges=<E>, D=<distance>, #OddVertices=<ov>, #ActShortPaths=<asp>, MC=<max_cut_value>, time=<duration> sec.
 ```
+
+When LP is enabled (`alg_num` includes 4) it is run after Algorithms #1/#2, timed separately, and logged as:
+```
+<timestamp>: GSetNum=<N>, #Nodes=<V>, #Edges=<E>, D=<distance>, Alg=LP, MCBound=<bound>, #Iters=<iterations>, MC=<max_cut_value>, time=<duration> sec.
+```
+Its solutions are saved to `sols/gset_<N>_maxcut_masks_lp.txt` and `sols/gset_<N>_maxcut_groups_hex_lp.txt`, and a `run times` line comparing the algorithms is printed for each problem.
 
 ## Algorithm Details
 
