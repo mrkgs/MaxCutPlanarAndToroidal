@@ -14,30 +14,15 @@ from params_manager import myinf, MinPathThreshhold
 from params_manager import use_multi_proc as use_multi_proc_prm
 from params_manager import ncycles as number_of_cycles
 
-def get_toroid_max_cut_bound(H, Habs, Hsign, D, gsetnum):
+def get_toroid_max_cut_bound(H, Habs, Hsign, edges_array, faces_array, neighbor_faces_array, gsetnum):
+    # edges_array, faces_array, neighbor_faces_array: output of find_edges_and_faces_of_toroid(), computed by the caller
     # MinPathThreshhold = 5
     # MinPathThreshhold = 30000
     rerun_get_min_odd_paths = 1
-    force_find_faces = 1
-    save_faces = 1
     if not os.path.exists('./info'):
         os.makedirs('./info')
     if not os.path.exists('./bounds'):
         os.makedirs('./bounds')
-
-    if os.path.exists('info/edges_'+str(gsetnum)+'.txt') and not force_find_faces:
-        edges_array = np.loadtxt('info/edges_'+str(gsetnum)+'.txt').astype('int64')
-        faces_array = np.loadtxt('info/faces_' + str(gsetnum) + '.txt').astype('int64')
-        neighbor_faces_array = np.loadtxt('info/neighbors_' + str(gsetnum) + '.txt').astype('int64')
-    else:
-        # edges_array, faces_array, neighbor_faces_array = find_edges_and_faces_of_toroid(H, D)
-        edges_array, faces_array, neighbor_faces_array = find_edges_and_faces_of_toroid(Habs, Hsign, D)
-        for cnt in range(len(edges_array)):
-            assert neighbor_faces_array[cnt, 0] != neighbor_faces_array[cnt, 1], 'Currently, working only with graphs consisting of cycles - each edge must have 2 faces'
-        if save_faces:
-            np.savetxt('info/edges_'+str(gsetnum)+'.txt', edges_array)
-            np.savetxt('info/faces_' + str(gsetnum) + '.txt', faces_array)
-            np.savetxt('info/neighbors_' + str(gsetnum) + '.txt', neighbor_faces_array)
 
     min_paths_t0 = time.time()
     short_data_fname = f'./info/short_paths_data_{gsetnum}.npz'

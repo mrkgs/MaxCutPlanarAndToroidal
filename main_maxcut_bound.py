@@ -33,21 +33,28 @@ if __name__ == '__main__':
         D = int(np.round(np.mean(cycle_size)))
         print('GSet #'+str(GNum)+', #Nodes='+str(mat_sz)+', D='+str(D))
         summary = []
+        # Edges and faces are shared by all bounds and are excluded from their run times
+        edges_array, faces_array, neighbor_faces_array = find_edges_and_faces_of_toroid(Habs, Hsign, D)
         if alg_num & 3:  # Bound of Algorithms #1, #2 (shortest paths between odd faces)
+            for cnt in range(len(edges_array)):
+                assert neighbor_faces_array[cnt, 0] != neighbor_faces_array[cnt, 1], 'Currently, working only with graphs consisting of cycles - each edge must have 2 faces'
+            if not os.path.exists('./info'):
+                os.makedirs('./info')
+            np.savetxt('info/edges_'+str(GNum)+'.txt', edges_array)
+            np.savetxt('info/faces_' + str(GNum) + '.txt', faces_array)
+            np.savetxt('info/neighbors_' + str(GNum) + '.txt', neighbor_faces_array)
             total_t0 = time.time()
-            MCLimit, t101 = get_toroid_max_cut_bound(H, Habs, Hsign, D, GNum)
+            MCLimit, t101 = get_toroid_max_cut_bound(H, Habs, Hsign, edges_array, faces_array, neighbor_faces_array, GNum)
             total_t = time.time() - total_t0
             formatted_datetime = datetime.now().strftime("%Y %B %d, %H:%M:%S")
             with open("log.txt", "a") as flog:
                 flog.write(f"{formatted_datetime} GSet={GNum} MaxCutBound={MCLimit} time={t101}sec\n")
             summary.append(f'Bound={MCLimit}, time={total_t:.1f} sec.')
 
-        if alg_num & 4:  # Liers-Pardella bound. Total times include finding the faces in both cases
+        if alg_num & 4:  # Liers-Pardella bound
             lp_t0 = time.time()
-            edges_array, faces_array, _ = find_edges_and_faces_of_toroid(Habs, Hsign, D)
-            lp_match_t0 = time.time()
             lp_bound, lp_is_cut = get_toroid_max_cut_bound_lp(H, edges_array, faces_array)
-            lp_match_t = int(round(time.time() - lp_match_t0))
+            lp_match_t = int(round(time.time() - lp_t0))
             lp_t = time.time() - lp_t0
             print(f'answer: LP Max-Cut bound = {lp_bound}{" (it is a cut, so it is the Max-Cut)" if lp_is_cut else ""}, time = {lp_match_t} sec.')
             print('=====================')
