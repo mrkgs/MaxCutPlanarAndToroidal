@@ -18,6 +18,7 @@ print('=====================')
 
 
 if __name__ == '__main__':
+    runtimes = []  # per GSet: (GNum, #nodes, edges+faces time, Alg#1/#2 time, LP time)
     for GNum in gsetnum:
         H, edges = load_gset_problem(GNum)
         Habs = np.abs(H).astype(bool)
@@ -34,7 +35,10 @@ if __name__ == '__main__':
         print('GSet #'+str(GNum)+', #Nodes='+str(mat_sz)+', D='+str(D))
         summary = []
         # Edges and faces are shared by all bounds and are excluded from their run times
+        faces_t0 = time.time()
         edges_array, faces_array, neighbor_faces_array = find_edges_and_faces_of_toroid(Habs, Hsign, D)
+        faces_t = time.time() - faces_t0
+        total_t, lp_t = None, None
         if alg_num & 3:  # Bound of Algorithms #1, #2 (shortest paths between odd faces)
             for cnt in range(len(edges_array)):
                 assert neighbor_faces_array[cnt, 0] != neighbor_faces_array[cnt, 1], 'Currently, working only with graphs consisting of cycles - each edge must have 2 faces'
@@ -67,3 +71,15 @@ if __name__ == '__main__':
             summary.append(f'LP: Bound={lp_bound}, time={lp_t:.1f} sec.')
 
         print(f'GSet #{GNum} bounds | ' + ' | '.join(summary))
+        runtimes.append((GNum, mat_sz, faces_t, total_t, lp_t))
+
+    def fmt_t(t):
+        return '-' if t is None else f'{t:.1f}'
+    print('=====================')
+    print('Runtimes summary [sec] (Alg#1/#2 and LP times exclude edges and faces)')
+    print(f"{'GSet':>6} {'#Nodes':>7} {'Faces':>8} {'Alg#1/#2':>9} {'LP':>8}")
+    for GNum, mat_sz, faces_t, total_t, lp_t in runtimes:
+        print(f'{GNum:>6} {mat_sz:>7} {fmt_t(faces_t):>8} {fmt_t(total_t):>9} {fmt_t(lp_t):>8}')
+    sum_col = lambda k: None if all(r[k] is None for r in runtimes) else sum(r[k] for r in runtimes if r[k] is not None)
+    print(f"{'Total':>6} {'':>7} {fmt_t(sum_col(2)):>8} {fmt_t(sum_col(3)):>9} {fmt_t(sum_col(4)):>8}")
+    print(f'Script total time: {time.time() - t0:.1f} sec.')
